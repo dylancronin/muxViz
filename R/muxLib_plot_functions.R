@@ -5,6 +5,7 @@ requireNamespace("graphics", quietly = TRUE)
 requireNamespace("grid", quietly = TRUE)
 requireNamespace("rgl", quietly = TRUE)
 requireNamespace("ggplot2", quietly = TRUE)
+requireNamespace("ggraph", quietly = TRUE)
 
 #' Multiplot
 #'
@@ -160,141 +161,207 @@ multiplot.row <-
 #' @param box default TRUE
 #' @return a layout, i.e. a matrix of coordinates.
 #' @export
-layoutMultiplex <-
-  function(g.list,
-           layout = "fr",
-           ggplot.format = F,
-           box = T) {
-    lay <- NULL
-    if (layout == "fr") {
-      lay <-
-        igraph::layout_with_fr(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-    } else if (layout == "drl") {
-      lay <-
-        igraph::layout_with_drl(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-    } else if (layout == "auto") {
-      lay <-
-        igraph::layout_nicely(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-    } else if (layout == "kk") {
-      lay <-
-        igraph::layout_with_kk(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-    } else if (layout == "comp") {
-      lay <-
-        igraph::layout_components(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-    } else if (layout == "dh") {
-      lay <-
-        igraph::layout_with_dh(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+# layoutMultiplex <-
+#   function(g.list,
+#            layout = "fr",
+#            ggplot.format = F,
+#            box = T) {
+#     lay <- NULL
+#     if (layout == "fr") {
+#       lay <-
+#         igraph::layout_with_fr(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+#     } else if (layout == "drl") {
+#       lay <-
+#         igraph::layout_with_drl(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+#     } else if (layout == "auto") {
+#       lay <-
+#         igraph::layout_nicely(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+#     } else if (layout == "kk") {
+#       lay <-
+#         igraph::layout_with_kk(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+#     } else if (layout == "comp") {
+#       lay <-
+#         igraph::layout_components(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+#     } else if (layout == "dh") {
+#       lay <-
+#         igraph::layout_with_dh(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
+#     } else {
+#       stop("Not a valid layout algorithm!")
+#     }
+#     
+#     if (box) {
+#       lay[, 1] <-
+#         2 * (lay[, 1] - min(lay[, 1])) / (max(lay[, 1]) - min(lay[, 1])) - 1
+#       lay[, 2] <-
+#         2 * (lay[, 2] - min(lay[, 2])) / (max(lay[, 2]) - min(lay[, 2])) - 1
+#     }
+#     
+#     if (ggplot.format) {
+#       layout.mux <- list()
+#       for (l in 1:length(g.list)) {
+#         #fictitious, we need it just to quickly format the data frame
+#         layout.df <-
+#           ggraph::create_layout(g.list[[l]], layout = 'circle')
+#         layout.df$x <- lay[, 1]
+#         layout.df$y <- lay[, 2]
+#         layout.mux[[l]] <- layout.df
+#       }
+#       return(layout.mux)
+#     } else {
+#       return(lay)
+#     }
+#   }
+library(igraph)
+library(ggraph)
+library(ggplot2)
+library(RColorBrewer)
+library(cowplot)
+
+layoutMultiplex <- function(g.list,
+                            layout = "fr",
+                            ggplot.format = FALSE,
+                            box = TRUE) {
+  lay <- NULL
+  aggregate_matrix <- Reduce("+", lapply(g.list, as_adjacency_matrix))
+  g <- igraph::graph_from_adjacency_matrix(aggregate_matrix, mode="undirected", diag=FALSE)
+  
+  if (layout == "fr") {
+    lay <- igraph::layout_with_fr(g)
+  } else if (layout == "drl") {
+    lay <- igraph::layout_with_drl(g)
+  } else if (layout == "auto") {
+    lay <- igraph::layout_nicely(g)
+  } else if (layout == "kk") {
+    lay <- igraph::layout_with_kk(g)
+  } else if (layout == "comp") {
+    lay <- igraph::layout_components(g)
+  } else if (layout == "dh") {
+    lay <- igraph::layout_with_dh(g)
+  } else if (layout == "lgl") {
+    lay <- igraph::layout_with_lgl(g)
+  } else if (layout == "graphopt") {
+    lay <- igraph::layout_with_graphopt(g)
+  } else if (layout == "mds") {
+    lay <- igraph::layout_with_mds(g)
+  } else if (layout == "circle") {
+    lay <- igraph::layout_in_circle(g)
+  } else {
+    stop("Not a valid layout algorithm!")
+  }
+  
+  if (box) {
+    lay[, 1] <- 2 * (lay[, 1] - min(lay[, 1])) / (max(lay[, 1]) - min(lay[, 1])) - 1
+    lay[, 2] <- 2 * (lay[, 2] - min(lay[, 2])) / (max(lay[, 2]) - min(lay[, 2])) - 1
+  }
+  
+  if (ggplot.format) {
+    layout.mux <- list()
+    for (l in 1:length(g.list)) {
+      layout.df <- ggraph::create_layout(g.list[[l]], layout = 'circle')
+      layout.df$x <- lay[, 1]
+      layout.df$y <- lay[, 2]
+      layout.mux[[l]] <- layout.df
+    }
+    return(layout.mux)
+  } else {
+    return(lay)
+  }
+}
+
+plot_multiplex <- function(g.list,
+                           layer.colors,
+                           edge.colors = "auto",
+                           node.colors = "auto",
+                           node.size.values = "auto",
+                           node.alpha = 1,
+                           edge.alpha = 1,
+                           layout = NULL,  # Accept layout as an argument
+                           ggplot.format = FALSE,  # New parameter to check layout format
+                           show.legend = TRUE,
+                           centrality.measure = "degree",
+                           min.size = 1,
+                           max.size = 10) {  # Add max.size parameter
+  mypal <- layer.colors
+  Layers <- length(g.list)
+  
+  if (is.null(layout)) {
+    stop("Layout must be provided")
+  }
+  
+  p <- list()
+  
+  for (l in 1:Layers) {
+    if (node.size.values == "auto") {
+      if (centrality.measure == "degree") {
+        centrality <- igraph::degree(g.list[[l]])
+      } else if (centrality.measure == "betweenness") {
+        centrality <- igraph::betweenness(g.list[[l]])
+      } else if (centrality.measure == "closeness") {
+        centrality <- igraph::closeness(g.list[[l]])
+      } else if (centrality.measure == "eigenvector") {
+        centrality <- igraph::eigen_centrality(g.list[[l]])$vector
+      } else {
+        stop("Invalid centrality measure!")
+      }
+      
+      # Normalize centrality to the range [min.size, max.size]
+      centrality <- (centrality - min(centrality)) / (max(centrality) - min(centrality))
+      centrality <- centrality * (max.size - min.size) + min.size
+      
+      igraph::V(g.list[[l]])$size <- centrality
     } else {
-      stop("Not a valid layout algorithm!")
+      igraph::V(g.list[[l]])$size <- node.size.values
     }
     
-    if (box) {
-      lay[, 1] <-
-        2 * (lay[, 1] - min(lay[, 1])) / (max(lay[, 1]) - min(lay[, 1])) - 1
-      lay[, 2] <-
-        2 * (lay[, 2] - min(lay[, 2])) / (max(lay[, 2]) - min(lay[, 2])) - 1
-    }
+    igraph::V(g.list[[l]])$color <- layer.colors[l]
     
     if (ggplot.format) {
-      layout.mux <- list()
-      for (l in 1:length(g.list)) {
-        #fictitious, we need it just to quickly format the data frame
-        layout.df <-
-          ggraph::create_layout(g.list[[l]], layout = 'circle')
-        layout.df$x <- lay[, 1]
-        layout.df$y <- lay[, 2]
-        layout.mux[[l]] <- layout.df
-      }
-      return(layout.mux)
+      layout.df <- layout[[l]]
+      layout.df$size <- igraph::V(g.list[[l]])$size
     } else {
-      return(lay)
-    }
-  }
-
-
-#' Plot a multiplex
-#'
-#' @param g.list list of networks (representing the layers)
-#' @param layer.colors list of colors for the each layer
-#' @param edge.colors edge colors. If not provided, use the same color of the layer.
-#' @param node.colors node colors. If not provided, use the same color of the layer.
-#' @param node.size.values default 0.5,
-#' @param node.alpha default 1,
-#' @param edge.alpha default 1,
-#' @param layout default "fr", see \link[igraph]{layout_with_fr} for other options.
-#' @param show.legend default TRUE
-#' @return a plot
-#' @importFrom ggplot2 ggplot aes theme theme_void ggtitle element_text scale_color_manual
-#' @export
-plot_multiplex <-
-  function(g.list,
-           layer.colors,
-           edge.colors = "auto",
-           node.colors = "auto",
-           node.size.values = 0.5,
-           node.alpha = 1,
-           edge.alpha = 1,
-           layout = "fr",
-           show.legend = TRUE
-           ) {
-    # Generate the coordinates for layouting our networks.
-    mypal <- layer.colors
-    Layers <- length(g.list)
-    
-    lay <- layoutMultiplex(g.list, layout = layout)
-    p <- list()
-    
-    for (l in 1:Layers) {
-      if (node.size.values == "auto") {
-        igraph::V(g.list[[l]])$size <- sqrt(igraph::strength(g.list[[l]]))
-      } else {
-        igraph::V(g.list[[l]])$size <- node.size.values
-      }
-      
-      igraph::V(g.list[[l]])$color <- layer.colors[l]
-      
-      # fictitious, we use it just to build the dataframe required for plotting
-      layout <- ggraph::create_layout(g.list[[l]], layout = 'drl')
-      layout$x <- lay[, 1]
-      layout$y <- lay[, 2]
-      
-      if (node.colors == "auto") {
-        node.col <- layer.colors[l]
-      } else {
-        node.col <- node.colors
-      }
-      
-      if (edge.colors == "auto") {
-        edge.col <- layer.colors[l]
-      } else {
-        edge.col <- edge.colors
-      }
-      
-      p[[l]] <- ggraph::ggraph(layout) + 
-        theme_void() +
-        ggraph::geom_edge_link(colour = edge.col, show.legend = FALSE, alpha = edge.alpha) +
-        ggraph::geom_node_point(aes(size = size), colour = node.col, alpha = node.alpha) +
-        theme(
-          legend.position = "bottom",
-          plot.title = element_text(
-            size = 12,
-            hjust = 0.5,
-            face = "bold",
-            colour = layer.colors[l],
-            vjust = -1
-          )
-        ) +
-        ggtitle(paste("Layer", l)) +
-        #guides(size=guide_legend(title="MuxPR"), color=F, alpha=F) +
-        scale_color_manual(values = c("orange", "grey80"))
-      
-      if (!show.legend) {
-        p[[l]] <- p[[l]] + theme(legend.position = "none")
-      }
+      layout.df <- data.frame(x = layout[, 1], y = layout[, 2], size = igraph::V(g.list[[l]])$size)
     }
     
-    return(do.call(multiplot.col, args = p))
+    if (node.colors == "auto") {
+      node.col <- layer.colors[l]
+    } else {
+      node.col <- node.colors
+    }
+    
+    if (edge.colors == "auto") {
+      edge.col <- layer.colors[l]
+    } else {
+      edge.col <- edge.colors
+    }
+    
+    p[[l]] <- ggraph(g.list[[l]], layout = 'manual', x = layout.df$x, y = layout.df$y) + 
+      theme_void() +
+      geom_edge_link(colour = edge.col, show.legend = FALSE, alpha = edge.alpha) +
+      geom_node_point(aes(x = x, y = y, size = size), colour = node.col, alpha = node.alpha) +
+      theme(
+        legend.position = "bottom",
+        plot.title = element_text(
+          size = 12,
+          hjust = 0.5,
+          face = "bold",
+          colour = layer.colors[l],
+          vjust = -1
+        )
+      ) +
+      ggtitle(paste("Layer", l)) +
+      scale_color_manual(values = c("orange", "grey80"))
+    
+    if (!show.legend) {
+      p[[l]] <- p[[l]] + theme(legend.position = "none")
+    }
   }
+  
+  return(plot_grid(plotlist = p, ncol = length(p)))
+}
+
+
+
+
 
 #' @describeIn plot_multiplex Old name
 #' @usage plot.multiplex(g.list, layer.colors, edge.colors = "auto", node.colors = "auto",
