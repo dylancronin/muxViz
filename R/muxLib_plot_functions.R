@@ -161,56 +161,7 @@ multiplot.row <-
 #' @param box default TRUE
 #' @return a layout, i.e. a matrix of coordinates.
 #' @export
-# layoutMultiplex <-
-#   function(g.list,
-#            layout = "fr",
-#            ggplot.format = F,
-#            box = T) {
-#     lay <- NULL
-#     if (layout == "fr") {
-#       lay <-
-#         igraph::layout_with_fr(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-#     } else if (layout == "drl") {
-#       lay <-
-#         igraph::layout_with_drl(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-#     } else if (layout == "auto") {
-#       lay <-
-#         igraph::layout_nicely(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-#     } else if (layout == "kk") {
-#       lay <-
-#         igraph::layout_with_kk(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-#     } else if (layout == "comp") {
-#       lay <-
-#         igraph::layout_components(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-#     } else if (layout == "dh") {
-#       lay <-
-#         igraph::layout_with_dh(igraph::graph_from_adjacency_matrix(GetAggregateMatrixFromNetworkList(g.list)))
-#     } else {
-#       stop("Not a valid layout algorithm!")
-#     }
-#     
-#     if (box) {
-#       lay[, 1] <-
-#         2 * (lay[, 1] - min(lay[, 1])) / (max(lay[, 1]) - min(lay[, 1])) - 1
-#       lay[, 2] <-
-#         2 * (lay[, 2] - min(lay[, 2])) / (max(lay[, 2]) - min(lay[, 2])) - 1
-#     }
-#     
-#     if (ggplot.format) {
-#       layout.mux <- list()
-#       for (l in 1:length(g.list)) {
-#         #fictitious, we need it just to quickly format the data frame
-#         layout.df <-
-#           ggraph::create_layout(g.list[[l]], layout = 'circle')
-#         layout.df$x <- lay[, 1]
-#         layout.df$y <- lay[, 2]
-#         layout.mux[[l]] <- layout.df
-#       }
-#       return(layout.mux)
-#     } else {
-#       return(lay)
-#     }
-#   }
+
 library(igraph)
 library(ggraph)
 library(ggplot2)
